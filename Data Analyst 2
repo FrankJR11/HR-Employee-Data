@@ -1,0 +1,72 @@
+# 1. Ensure our target variable is ready
+# Recreate the Attrition_Flag column to ensure it exists in this cell's scope
+print("Attrition categories:", df_hr['Attrition'].cat.categories)
+# Map 'Yes' to 1 and 'No' to 0
+df_hr['Attrition_Flag'] = (df_hr['Attrition'] == 'Yes').astype(int)
+print("Attrition_Flag unique values:", df_hr['Attrition_Flag'].unique())
+
+# 2. Deepen Categorical Analysis: Intersection of Factors
+plt.figure(figsize=(10, 6))
+sns.barplot(data=df_hr, x='MaritalStatus', y='Attrition_Flag', hue='OverTime', estimator=np.mean)
+plt.title('Attrition Rate by Marital Status and Overtime')
+plt.ylabel('Attrition Rate')
+plt.show()
+
+# Create a pivot table for Department and Overtime (WARNING FIXED HERE)
+pivot_1 = pd.pivot_table(df_hr, values='Attrition_Flag', index='Department', columns='OverTime', aggfunc='mean', observed=False)
+print("Attrition Rate by Department and Overtime:")
+print(pivot_1.round(3))
+
+# 3. Analyze Job Role More Granularly (Volume vs. Rate)
+leavers = df_hr[df_hr['Attrition'] == 'Yes']
+role_leaver_count = leavers['JobRole'].value_counts()
+role_total_count = df_hr['JobRole'].value_counts()
+
+# Create a DataFrame for analysis
+role_attrition_df = pd.DataFrame({
+    'Total_Employees': role_total_count,
+    'Total_Leavers': role_leaver_count,
+    'Attrition_Rate': (role_leaver_count / role_total_count) * 100
+}).fillna(0).sort_values('Total_Leavers', ascending=False)
+
+print("\nAttrition Analysis by Job Role (Ordered by Volume of Leavers):")
+print(role_attrition_df)
+
+# 4. Deepen Numeric Analysis: Compare Key Metrics (WARNING FIXED HERE)
+key_numeric_features = ['MonthlyIncome', 'Age', 'YearsAtCompany', 'YearsSinceLastPromotion', 'TotalWorkingYears']
+
+print("\nMean Values by Attrition Status:")
+# Added observed=False to the groupby operation
+print(df_hr.groupby('Attrition', observed=False)[key_numeric_features].mean().round(1))
+
+# 5. Analyze the "Promotion Gap"
+# Create a new feature
+df_hr['YearsWithoutPromotion'] = df_hr['YearsAtCompany'] - df_hr['YearsSinceLastPromotion']
+
+# Now plot this new feature against Attrition
+plt.figure(figsize=(8, 5))
+sns.boxplot(data=df_hr, x='Attrition', y='YearsWithoutPromotion')
+plt.title('Years Without Promotion by Attrition Status')
+plt.show()
+
+# Check the correlation of this new feature with Attrition_Flag
+corr_value = df_hr['YearsWithoutPromotion'].corr(df_hr['Attrition_Flag'])
+print(f"\nCorrelation of 'YearsWithoutPromotion' with Attrition: {corr_value:.3f}")
+
+# 6. Correlation Analysis (The "Big Picture")
+corr_features = ['Age', 'MonthlyIncome', 'DistanceFromHome', 'TotalWorkingYears', 
+                 'YearsAtCompany', 'YearsInCurrentRole', 'YearsSinceLastPromotion', 
+                 'YearsWithCurrManager', 'PercentSalaryHike', 'TrainingTimesLastYear',
+                 'YearsWithoutPromotion', 'Attrition_Flag']
+
+plt.figure(figsize=(12, 9))
+corr_matrix = df_hr[corr_features].corr(numeric_only=True)
+mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+sns.heatmap(corr_matrix, mask=mask, annot=True, fmt='.2f', cmap='coolwarm', center=0, square=True)
+plt.title('Correlation Matrix of Numeric Features and Attrition')
+plt.tight_layout()
+plt.show()
+
+# Print the top features most correlated with Attrition
+print("Top features correlated with Attrition:")
+print(corr_matrix['Attrition_Flag'].abs().sort_values(ascending=False).head(10))
