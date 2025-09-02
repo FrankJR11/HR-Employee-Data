@@ -1,0 +1,53 @@
+# This cell loads the HR Employee Attrition dataset and performs initial EDA (structure, head, basic stats)
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Configure display
+pd.set_option('display.max_columns', 100)
+
+# Load data
+file_path = r"C:\Users\FrankJR\Downloads\Portfolio\HR Dataset\HR-Employee-Attrition.csv"
+df_hr = pd.read_csv(file_path, encoding='UTF-8-SIG')
+
+# Basic shape and dtypes
+print('Rows: ' + str(df_hr.shape[0]))
+print('Columns: ' + str(df_hr.shape[1]))
+print('Columns preview:')
+print(df_hr.columns.tolist())
+
+# Show head
+print('Head:')
+print(df_hr.head(10))
+
+# Missing values
+missing_counts = df_hr.isna().sum().sort_values(ascending=False)
+print('Missing values per column (top 10):')
+print(missing_counts.head(10))
+
+# Target balance
+print('Attrition value counts:')
+print(df_hr['Attrition'].value_counts())
+
+# Basic numeric description
+print('Numeric summary:')
+print(df_hr.describe(include=[np.number]).T.head(15))
+
+# Convert some categorical columns to category dtype for later efficiency
+cat_cols_guess = df_hr.select_dtypes(include=['object']).columns.tolist()
+for c in cat_cols_guess:
+    df_hr[c] = df_hr[c].astype('category')
+print('Converted object columns to category dtype.')
+
+# Quick visualization: target distribution
+plt.figure(figsize=(4,3))
+sns.countplot(x='Attrition', data=df_hr)
+plt.title('Attrition Distribution')
+plt.tight_layout()
+plt.show()
+
+# Save a small profile summary of categorical cardinalities
+cat_card = df_hr[cat_cols_guess].nunique().sort_values(ascending=False)
+print('Categorical cardinalities (top 10):')
+print(cat_card.head(10))
